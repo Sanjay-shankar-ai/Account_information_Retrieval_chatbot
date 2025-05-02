@@ -2,6 +2,9 @@
 
 A secure, AI-powered banking assistant built using Streamlit and Llama 3.3 to help customers access account information, view transactions, and get summaries through a user-friendly chat interface.
 
+## Website
+https://account-info-chatbot.streamlit.app/
+
 ## 🚀 Features
 
 - 🔐 **Secure Login** via account number (can be extended to OTP-based verification)
