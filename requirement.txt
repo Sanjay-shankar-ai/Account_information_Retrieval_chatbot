@@ -9,3 +9,4 @@ chromadb==0.4.17
 protobuf==3.20
 pysqlite3-binary
 pdfkit
+email
