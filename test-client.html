@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Assistant API Test Client</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            background-color: #fafbfc;
+        }
+        .section h3 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        input, textarea, button, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .response {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏦 Financial Assistant API Test Client</h1>
+        
+        <div class="section">
+            <h3>🔐 Login</h3>
+            <input type="text" id="accountNumber" placeholder="Account Number (try: 1234567890)" value="1234567890">
+            <button onclick="login()">Login</button>
+            <div id="loginResponse" class="response"></div>
+        </div>
+
+        <div class="grid">
+            <div class="section">
+                <h3>🤖 Ask Financial Question</h3>
+                <textarea id="query" placeholder="Ask your financial question..." rows="3">What is my current balance and recent transactions?</textarea>
+                <button onclick="askQuestion()">Ask AI</button>
+                <div id="askResponse" class="response"></div>
+            </div>
+
+            <div class="section">
+                <h3>📊 Transaction Summary</h3>
+                <button onclick="getSummary()">Get Summary</button>
+                <div id="summaryResponse" class="response"></div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="section">
+                <h3>📅 Get Transactions</h3>
+                <input type="date" id="startDate" value="2024-03-01">
+                <input type="date" id="endDate" value="2024-04-30">
+                <button onclick="getTransactions()">Get Transactions</button>
+                <div id="transactionsResponse" class="response"></div>
+            </div>
+
+            <div class="section">
+                <h3>📧 Email Statement</h3>
+                <p style="font-size: 14px; color: #666;">Send 30-day statement to registered email</p>
+                <button onclick="sendEmail()">Send Email Statement</button>
+                <div id="emailResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let currentAccount = '';
+
+        async function makeRequest(endpoint, data = null) {
+            try {
+                const options = {
+                    method: data ? 'POST' : 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const result = await response.json();
+                
+                return {
+                    success: response.ok,
+                    data: result,
+                    status: response.status
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    data: { error: error.message },
+                    status: 0
+                };
+            }
+        }
+
+        function displayResponse(elementId, response, isSuccess = null) {
+            const element = document.getElementById(elementId);
+            element.textContent = JSON.stringify(response.data, null, 2);
+            
+            if (isSuccess === null) {
+                isSuccess = response.success;
+            }
+            
+            element.className = `response ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        async function login() {
+            const accountNumber = document.getElementById('accountNumber').value;
+            if (!accountNumber) {
+                alert('Please enter an account number');
+                return;
+            }
+
+            const response = await makeRequest('/api/login', { accountNumber });
+            displayResponse('loginResponse', response);
+            
+            if (response.success) {
+                currentAccount = accountNumber;
+                document.getElementById('accountNumber').style.backgroundColor = '#d4edda';
+            }
+        }
+
+        async function askQuestion() {
+            if (!currentAccount) {
+                alert('Please login first');
+                return;
+            }
+
+            const query = document.getElementById('query').value;
+            if (!query) {
+                alert('Please enter a question');
+                return;
+            }
+
+            const response = await makeRequest('/api/ask', {
+                accountNumber: currentAccount,
+                query
+            });
+            displayResponse('askResponse', response);
+        }
+
+        async function getTransactions() {
+            if (!currentAccount) {
+                alert('Please login first');
+                return;
+            }
+
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const response = await makeRequest('/api/transactions', {
+                accountNumber: currentAccount,
+                startDate,
+                endDate
+            });
+            displayResponse('transactionsResponse', response);
+        }
+
+        async function getSummary() {
+            if (!currentAccount) {
+                alert('Please login first');
+                return;
+            }
+
+            const response = await makeRequest('/api/summary', {
+                accountNumber: currentAccount
+            });
+            displayResponse('summaryResponse', response);
+        }
+
+        async function sendEmail() {
+            if (!currentAccount) {
+                alert('Please login first');
+                return;
+            }
+
+            const response = await makeRequest('/api/email-statement', {
+                accountNumber: currentAccount
+            });
+            displayResponse('emailResponse', response);
+        }
+
+        // Test API connection on load
+        window.onload = async function() {
+            const response = await makeRequest('/health');
+            if (response.success) {
+                console.log('✅ API is running');
+            } else {
+                console.error('❌ API connection failed');
+                alert('Cannot connect to API. Make sure the server is running on port 3000.');
+            }
+        };
+    </script>
+</body>
+</html>
